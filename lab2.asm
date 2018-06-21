@@ -1,0 +1,64 @@
+ORG 1800h
+LD SP, 0x1FFF
+IM 1
+LD A, 0x00 ;akumulator
+LD B, 0x00 ;licznik od debouncingu przyciskow
+LD D, 0x00 ;licznik graya
+LD H, 0xFE ;stan automatu (stan poczatkowy, wykrywanie wciskania przycisku)
+EI
+
+START:
+CONVERT_AND_DISPLAY:
+	LD A, D 
+	AND 0x0F 
+	LD D, A
+	SRL A
+	XOR D
+	OUT (0x00),A
+	
+BUTTON_STATE_CHECK:
+	IN A,(0x00)
+	XOR H
+	JR Z, DEBOUNCING_CHECK
+	
+BUTTON_STATE_DECLINED:
+	LD B,0x00
+	JR BREAK
+		
+DEBOUNCING_CHECK:
+	INC B
+	DI
+	LD A,B
+	XOR 0xFF
+	JR NZ,BREAK
+
+BUTTON_STATE_ACCEPTED:
+	LD B,0x00
+	LD A,H
+	XOR 0xFE
+	JR NZ, BUTTON_UP
+	
+BUTTON_DOWN:
+	INC D
+	LD H,0xFF
+	JR BREAK
+	
+BUTTON_UP:
+	LD H,0xFE
+	
+BREAK:
+	EI
+	
+JR START
+	
+	
+INTERRUPT:
+	DS 1838h-$, 0
+	LD A, 0x00
+	LD D, 0x00
+	LD B, 0x00
+	LD H, 0xFF
+	OUT (0x00),A
+	EI
+	RETI
+	
